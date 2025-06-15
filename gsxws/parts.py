@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import urllib
+import urllib.request
 import tempfile
 
-from lookups import Lookup
-from core import GsxObject, GsxError
+from .lookups import Lookup
+from .core import GsxObject, GsxError
 
 REASON_CODES = (
     ('A', 'Part not needed'),
@@ -39,7 +39,7 @@ class Part(GsxObject):
         tmpfile = tempfile.mkstemp(suffix=image)
 
         try:
-            return urllib.urlretrieve(url, tmpfile[1])[0]
+            return urllib.request.urlretrieve(url, tmpfile[1])[0]
         except Exception as e:
             raise GsxError("Failed to fetch part image: %s" % e)
 

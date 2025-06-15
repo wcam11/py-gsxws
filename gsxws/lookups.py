@@ -5,7 +5,7 @@ import logging
 import tempfile
 from datetime import date
 
-from core import GsxObject, connect
+from .core import GsxObject, connect
 
 
 class Lookup(GsxObject):

@@ -4,11 +4,12 @@ https://gsxwsut.apple.com/apidocs/ut/html/WSAPIChangeLog.html?user=asp
 """
 
 import re
-import urllib
+import urllib.request
+import yaml
 
-from lookups import Lookup
-from diagnostics import Diagnostics
-from core import GsxObject, GsxError, validate
+from .lookups import Lookup
+from .diagnostics import Diagnostics
+from .core import GsxObject, GsxError, validate
 
 
 def models():
@@ -17,9 +18,9 @@ def models():
     {'IPODCLASSIC': {'models': ['iPod 5th Generation (Late 2006)', ...
     """
     import os
-    import yaml
     filepath = os.path.join(os.path.dirname(__file__), "products.yaml")
-    return yaml.load(open(filepath, 'r'))
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return yaml.load(f, Loader=yaml.SafeLoader)
 
 
 class Product(object):
@@ -68,7 +69,7 @@ class Product(object):
         Traceback (most recent call last):
         ...
         AttributeError: no such child: blaa
-        >>> Product('WQ8094DW0P1').warranty([(u'661-5070', u'Z26',)]).warrantyStatus
+        >>> Product('WQ8094DW0P1').warranty([('661-5070', 'Z26',)]).warrantyStatus
         'Out Of Warranty (No Coverage)'
         """
         if self.should_check_activation:
@@ -151,7 +152,7 @@ class Product(object):
             raise GsxError("No URL to fetch product image")
 
         try:
-            return urllib.urlretrieve(url)[0]
+            return urllib.request.urlretrieve(url)[0]
         except Exception as e:
             raise GsxError("Failed to fetch product image: %s" % e)
 

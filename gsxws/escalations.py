@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os.path
-from core import GsxObject
-from lookups import Lookup
+from .core import GsxObject
+from .lookups import Lookup
 
 STATUS_OPEN = 'O'
 STATUS_CLOSED = 'C'
@@ -56,7 +56,7 @@ class FileAttachment(GsxObject):
     def __init__(self, fp):
         super(FileAttachment, self).__init__()
         self.fileName = os.path.basename(fp)
-        self.fileData = open(fp, 'r')
+        self.fileData = open(fp, 'rb')
 
 
 class Escalation(GsxObject):

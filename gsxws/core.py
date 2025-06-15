@@ -34,7 +34,7 @@ import hashlib
 import logging
 import requests
 import tempfile
-import objectify
+from . import objectify
 import xml.etree.ElementTree as ET
 
 from datetime import date, time, datetime, timedelta
@@ -127,7 +127,7 @@ def validate(value, what=None):
     """
     result = None
 
-    if not isinstance(value, basestring):
+    if not isinstance(value, str):
         raise ValueError('%s is not valid input (%s != string)' % (value, type(value)))
 
     rex = {
@@ -151,8 +151,8 @@ def validate(value, what=None):
 
 def get_format(locale=GSX_LOCALE):
     filepath = os.path.join(os.path.dirname(__file__), 'langs.json')
-    df = open(filepath, 'r')
-    return json.load(df).get(locale)
+    with open(filepath, 'r', encoding='utf-8') as df:
+        return json.load(df).get(locale)
 
 
 class GsxError(Exception):
@@ -163,7 +163,7 @@ class GsxError(Exception):
         self.codes = []
         self.messages = []
 
-        if isinstance(message, basestring):
+        if isinstance(message, str):
             self.messages.append(message)
 
         if status == 403:
@@ -188,9 +188,6 @@ class GsxError(Exception):
             for el in root.findall('*//message'):
                 self.messages.append(el.text)
 
-    def __str__(self):
-        return repr(self.message)
-
     @property
     def code(self):
         try:
@@ -200,17 +197,17 @@ class GsxError(Exception):
 
     @property
     def message(self):
-        return unicode(self)
+        return str(self)
 
     @property
     def errors(self):
         return dict(zip(self.codes, self.messages))
 
-    def __unicode__(self):
+    def __str__(self):
         if len(self.messages) < 1:
             return u'Unknown GSX error'
 
-        return u' '.join(self.messages)
+        return ' '.join(self.messages)
 
 
 class GsxCache(object):
@@ -325,7 +322,7 @@ class GsxRequest(object):
         "Constructs and submits the final SOAP message"
         root = ET.SubElement(self.body, self.obj._namespace + method)
 
-        if method is "Authenticate":
+        if method == "Authenticate":
             root.append(self.data)
         else:
             request_name = method + "Request"
@@ -372,11 +369,8 @@ class GsxRequest(object):
         self.objects = objectify.parse(xml, response)
         return self.objects
 
-    def __unicode__(self):
-        return ET.tostring(self.env)
-
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return ET.tostring(self.env, encoding='unicode')
 
 
 class GsxResponse:
@@ -487,7 +481,7 @@ class GsxObject(object):
                         i.extend(e.to_xml(k))
             else:
                 el = ET.SubElement(root, k)
-                if isinstance(v, basestring):
+                if isinstance(v, str):
                     el.text = v
                 if isinstance(v, GsxObject):
                     el.extend(v.to_xml(k))

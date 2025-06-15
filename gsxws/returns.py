@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from core import GsxObject, validate
+from .core import GsxObject, validate
 
 RETURN_TYPES = (
     (1, "Dead On Arrival"),

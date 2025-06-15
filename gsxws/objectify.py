@@ -112,7 +112,7 @@ class GsxElement(objectify.ObjectifiedElement):
 
         # Work around lxml chomping leading zeros off of IMEI numbers
         if name in STRING_TYPES:
-            return unicode(result.text or '')
+            return str(result.text or '')
 
         if isinstance(result, objectify.NumberElement):
             return result.pyval
@@ -120,7 +120,7 @@ class GsxElement(objectify.ObjectifiedElement):
         if isinstance(result, objectify.StringElement):
             name = result.tag
             result = result.text or ''
-            result = unicode(result)
+            result = str(result)
 
             if not result:
                 return
@@ -157,7 +157,7 @@ def parse(root, response):
     lookup = objectify.ObjectifyElementClassLookup(tree_class=GsxElement)
     parser.set_element_class_lookup(lookup)
 
-    if isinstance(root, basestring) and os.path.exists(root):
+    if isinstance(root, str) and os.path.exists(root):
         root = objectify.parse(root, parser)
     else:
         root = objectify.fromstring(root, parser)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from core import GsxObject
+from .core import GsxObject
 
 
 class OrderLine(GsxObject):

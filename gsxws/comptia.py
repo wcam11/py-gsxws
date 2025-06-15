@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from core import GsxObject, GsxCache
+from .core import GsxObject, GsxCache
 
 MODIFIERS = (
     ("A", "Not Applicable"),
@@ -58,7 +58,7 @@ class CompTIA(GsxObject):
         modifier details, in order to create or update repairs.
 
         >>> CompTIA().fetch() # doctest: +ELLIPSIS
-        {u'A': {'989': u'Remote Inoperable', ...
+        {'A': {'989': 'Remote Inoperable', ...
         """
         if self._cache.get('comptia'):
             return self._cache.get('comptia')
@@ -69,9 +69,9 @@ class CompTIA(GsxObject):
 
         for el in root.findall(".//comptiaGroup"):
             group = []
-            comp_id = unicode(el[0].text)
+            comp_id = str(el[0].text)
             for ci in el.findall("comptiaCodeInfo"):
-                group.append((ci[0].text, unicode(ci[1].text)),)
+                group.append((ci[0].text, str(ci[1].text)),)
 
             self._comptia[comp_id] = group
 
@@ -84,7 +84,7 @@ class CompTIA(GsxObject):
         belonging to the given component code.
 
         >>> CompTIA().symptoms(0) # doctest: +ELLIPSIS
-        {u'B': [(u'B0A', u'Any Camera issue'), ...
+        {'B': [('B0A', 'Any Camera issue'), ...
         """
         r = dict()
 

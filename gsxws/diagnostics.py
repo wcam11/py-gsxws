@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from core import GsxObject, GsxError
+from .core import GsxObject, GsxError
 
 
 class Diagnostics(GsxObject):

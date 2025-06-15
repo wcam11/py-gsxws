@@ -4,8 +4,8 @@
 import sys
 import logging
 
-from core import GsxObject, GsxError, validate
-from lookups import Lookup
+from .core import GsxObject, GsxError, validate
+from .lookups import Lookup
 
 REPAIR_TYPES = (
     ('CA', 'Carry-In/Non-Replinished'),

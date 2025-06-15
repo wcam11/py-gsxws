@@ -62,7 +62,7 @@ class RemoteTestCase(TestCase):
 
     def assertUnicodeOrInt(self, val):
         try:
-            self.assertIsInstance(val, unicode)
+            self.assertIsInstance(val, str)
         except AssertionError:
             self.assertIsInstance(val, int)
 
@@ -88,11 +88,11 @@ class DiagnosticsTestCase(TestCase):
         res = self.diag.fetch()
 
         for r in res.diagnosticTestData.testResult.result:
-            self.assertIsInstance(r.name, unicode)
+            self.assertIsInstance(r.name, str)
             self.assertUnicodeOrInt(r.value)
 
         for r in res.diagnosticProfileData.profile.unit.key:
-            self.assertIsInstance(r.name, unicode)
+            self.assertIsInstance(r.name, str)
             self.assertUnicodeOrInt(r.value)
 
         for r in res.diagnosticProfileData.report.reportData.key:
@@ -155,26 +155,40 @@ class RepairTestCase(RemoteTestCase):
 
 class CoreFunctionTestCase(TestCase):
     def test_dump(self):
-        rep = repairs.Repair(blaa=u'ääöö')
+        rep = repairs.Repair(blaa='ääöö')
         part = repairs.RepairOrderLine()
         part.partNumber = '661-5571'
         rep.orderLines = [part]
-        self.assertRegexpMatches(rep.dumps(),
-                                 '<GsxObject><blaa>ääöö</blaa><orderLines>')
+        self.assertRegex(rep.dumps().decode('utf-8'),
+                         '<GsxObject><blaa>ääöö</blaa><orderLines>')
 
     def test_cache(self):
         """Make sure the cache is working."""
         c = GsxCache('test').set('spam', 'eggs')
-        self.assertEquals(c.get('spam'), 'eggs')
+        self.assertEqual(c.get('spam'), 'eggs')
+
+    def test_gsx_object_unicode_handling(self):
+        from gsxws.core import GsxObject
+        obj = GsxObject(name='ÄäkkösetÖö', description='Тест юникода')
+        xml_output = obj.dumps().decode('utf-8')
+        self.assertIn('ÄäkkösetÖö', xml_output)
+        self.assertIn('Тест юникода', xml_output)
+
+        obj.status = ' 완료'
+        new_xml_output = obj.dumps().decode('utf-8')
+        self.assertIn('ÄäkkösetÖö', new_xml_output)
+        self.assertIn('Тест юникода', new_xml_output)
+        self.assertIn(' 완료', new_xml_output)
 
 
 class TestTypes(TestCase):
     def setUp(self):
-        xml = open('tests/fixtures/escalation_details_lookup.xml', 'r').read()
+        with open('tests/fixtures/escalation_details_lookup.xml', 'rb') as f:
+            xml = f.read()
         self.data = parse(xml, 'lookupResponseData')
 
     def test_unicode(self):
-        self.assertIsInstance(self.data.lastModifiedBy, unicode)
+        self.assertIsInstance(self.data.lastModifiedBy, str)
 
     def test_timestamp(self):
         self.assertIsInstance(self.data.createTimestamp, datetime)
@@ -189,7 +203,8 @@ class TestTypes(TestCase):
 
 class TestErrorFunctions(TestCase):
     def setUp(self):
-        xml = open('tests/fixtures/multierror.xml', 'r').read()
+        with open('tests/fixtures/multierror.xml', 'rb') as f:
+            xml = f.read()
         self.data = GsxError(xml=xml)
 
     def test_code(self):
@@ -197,7 +212,7 @@ class TestErrorFunctions(TestCase):
                          'This unit is not eligible for an Onsite repair from GSX.')
 
     def test_message(self):
-        self.assertRegexpMatches(self.data.message, 'Multiple error messages exist.')
+        self.assertRegex(self.data.message, 'Multiple error messages exist.')
 
     def test_exception(self):
         msg = 'Connection failed'
@@ -206,10 +221,15 @@ class TestErrorFunctions(TestCase):
 
     def test_error_ca_fmip(self):
         from gsxws.core import GsxResponse
-        xml = open('tests/fixtures/error_ca_fmip.xml', 'r').read()
-        with self.assertRaisesRegexp(GsxError, 'A repair cannot be created'):
-            GsxResponse(xml=xml, el_method='CreateCarryInResponse',
-                        el_response='repairConfirmation')
+        class MockHttpResponse:
+            status_code = 200
+            reason = "OK"
+
+        with open('tests/fixtures/error_ca_fmip.xml', 'rb') as f:
+            xml = f.read()
+        with self.assertRaisesRegex(GsxError, 'A repair cannot be created'):
+            GsxResponse(http_response=MockHttpResponse(), xml=xml,
+                        el_method='CreateCarryInResponse', el_response='repairConfirmation')
 
 
 class TestLookupFunctions(RemoteTestCase):
@@ -367,7 +387,7 @@ class TestRepairFunctions(RepairTestCase):
 class TestPartFunction(RemoteTestCase):
     def test_product_parts(self):
         parts = Product(os.getenv('GSX_SN')).parts()
-        self.assertIsInstance(parts[0].partNumber, basestring)
+        self.assertIsInstance(parts[0].partNumber, str)
 
 
 class TestRemoteWarrantyFunctions(TestCase):
@@ -496,8 +516,9 @@ class TestOnsiteCoverage(RemoteTestCase):
 
 class TestActivation(TestCase):
     def setUp(self):
-        self.data = parse('tests/fixtures/ios_activation.xml',
-                          'activationDetailsInfo')
+        with open('tests/fixtures/ios_activation.xml', 'rb') as f:
+            xml_data = f.read()
+        self.data = parse(xml_data, 'activationDetailsInfo')
 
     def test_unlock_date(self):
         self.assertIsInstance(self.data.unlockDate, date)
@@ -515,8 +536,9 @@ class TestActivation(TestCase):
 
 class TestPartsLookup(TestCase):
     def setUp(self):
-        self.data = parse('tests/fixtures/parts_lookup.xml',
-                          'PartsLookupResponse')
+        with open('tests/fixtures/parts_lookup.xml', 'rb') as f:
+            xml_data = f.read()
+        self.data = parse(xml_data, 'PartsLookupResponse')
         self.part = self.data.parts[0]
 
     def test_parts(self):
@@ -538,8 +560,9 @@ class TestPartsLookup(TestCase):
 
 class TestOnsiteDispatchDetail(TestCase):
     def setUp(self):
-        self.data = parse('tests/fixtures/onsite_dispatch_detail.xml',
-                          'onsiteDispatchDetails')
+        with open('tests/fixtures/onsite_dispatch_detail.xml', 'rb') as f:
+            xml_data = f.read()
+        self.data = parse(xml_data, 'onsiteDispatchDetails')
 
     def test_details(self):
         self.assertEqual(self.data.dispatchId, 'G101260028')
@@ -573,14 +596,15 @@ class RepairUpdateTestCase(RemoteTestCase):
 
 class TestCarryinRepairDetail(TestCase):
     def setUp(self):
-        self.data = parse('tests/fixtures/repair_details_ca.xml',
-                          'lookupResponseData')
+        with open('tests/fixtures/repair_details_ca.xml', 'rb') as f:
+            xml_data = f.read()
+        self.data = parse(xml_data, 'lookupResponseData')
 
     def test_details(self):
         self.assertEqual(self.data.dispatchId, 'G2093174681')
 
     def test_unicode_name(self):
-        self.assertEqual(self.data.primaryAddress.firstName, u'Ääkköset')
+        self.assertEqual(self.data.primaryAddress.firstName, 'Ääkköset')
 
 
 class ConnectionTestCase(TestCase):
@@ -589,7 +613,7 @@ class ConnectionTestCase(TestCase):
     def test_access_denied(self):
         """Make sure we fail with 403 when connecting from non-whitelisted IP."""
         from gsxws.core import connect
-        with self.assertRaisesRegexp(GsxError, 'Access denied'):
+        with self.assertRaisesRegex(GsxError, 'Access denied'):
             connect(os.getenv('GSX_USER'), os.getenv('GSX_SOLDTO'), os.getenv('GSX_ENV'))
 
 
